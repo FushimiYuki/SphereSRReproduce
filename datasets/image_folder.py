@@ -52,6 +52,8 @@ class ImageFolder(Dataset):
             elif cache == 'in_memory':
                 self.files.append(transforms.ToTensor()(
                     Image.open(file).convert('RGB')))
+        
+        print(len(self.files))
 
     def __len__(self):
         return len(self.files) * self.repeat

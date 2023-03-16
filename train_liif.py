@@ -44,7 +44,6 @@ def make_data_loader(spec, tag=''):
     dataset = datasets.make(spec['dataset'])
     dataset = datasets.make(spec['wrapper'], args={'dataset': dataset})
 
-    log('{} dataset: size={}'.format(tag, len(dataset)))
     for k, v in dataset[0].items():
         log('  {}: shape={}'.format(k, tuple(v.shape)))
 
@@ -73,7 +72,11 @@ def prepare_training():
         for _ in range(epoch_start - 1):
             lr_scheduler.step()
     else:
+        print('test model config')
+        print(config['model'])
         model = models.make(config['model']).cuda()
+        print(models.make(config['model']))
+        print(model)
         optimizer = utils.make_optimizer(
             model.parameters(), config['optimizer'])
         epoch_start = 1
@@ -127,14 +130,22 @@ def main(config_, save_path):
     with open(os.path.join(save_path, 'config.yaml'), 'w') as f:
         yaml.dump(config, f, sort_keys=False)
 
+    log('test log')
+
+    print('make data loader start.')
     train_loader, val_loader = make_data_loaders()
+    print('data loader ready.')
+
     if config.get('data_norm') is None:
         config['data_norm'] = {
             'inp': {'sub': [0], 'div': [1]},
             'gt': {'sub': [0], 'div': [1]}
         }
 
+    print('start prepare.')
     model, optimizer, epoch_start, lr_scheduler = prepare_training()
+    print('preparing completed.')
+
 
     n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
     if n_gpus > 1:
@@ -175,6 +186,7 @@ def main(config_, save_path):
         }
 
         torch.save(sv_file, os.path.join(save_path, 'epoch-last.pth'))
+
 
         if (epoch_save is not None) and (epoch % epoch_save == 0):
             torch.save(sv_file,

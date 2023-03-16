@@ -11,7 +11,7 @@ from tqdm import tqdm
 import datasets
 import models
 import utils
-
+# import pdb
 
 def batched_predict(model, inp, coord, cell, bsize):
     with torch.no_grad():
@@ -96,19 +96,38 @@ if __name__ == '__main__':
     parser.add_argument('--model')
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
+    print("parser loaded")
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
+    data_path_1 = os.environ.get('GEMINI_DATA_IN1', '/gemini/data-1')
+    if len(config['test_dataset']['dataset']['args']) == 2 :
+        config['test_dataset']['dataset']['args']['root_path_1'] = config['test_dataset']['dataset']['args']['root_path_1'].replace('${GEMINI_DATA_IN1}', data_path_1)
+        config['test_dataset']['dataset']['args']['root_path_2'] = config['test_dataset']['dataset']['args']['root_path_2'].replace('${GEMINI_DATA_IN1}', data_path_1)
+    else:
+        config['test_dataset']['dataset']['args']['root_path'] = config['test_dataset']['dataset']['args']['root_path'].replace('${GEMINI_DATA_IN1}', data_path_1)
+
+    print(data_path_1)
+    print(config)
+
+    print("yaml loaded")
     spec = config['test_dataset']
     dataset = datasets.make(spec['dataset'])
     dataset = datasets.make(spec['wrapper'], args={'dataset': dataset})
     loader = DataLoader(dataset, batch_size=spec['batch_size'],
         num_workers=8, pin_memory=True)
+    print("data loaded")
 
+    print(args.model)
+    
+    # model = torch.load('/gemini/pretrain/edsr-baseline-liif.pth')
+    # pdb.set_trace()
     model_spec = torch.load(args.model)['model']
+       
+    print("model loaded")
     model = models.make(model_spec, load_sd=True).cuda()
 
     res = eval_psnr(loader, model,
